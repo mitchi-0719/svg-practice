@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { FirstPractice } from "./FirstPractice";
 import { HomeWork1 } from "./HomeWork1";
 import { HomeWork2 } from "./HomeWork2";
 
 const App = () => {
-  const data = {
+  const [h2Data, setH2Data] = useState([]);
+  const h1Data = {
     labels: ["A", "B", "C", "D"],
     series: [
       {
@@ -21,9 +23,19 @@ const App = () => {
     ],
   };
 
+  useEffect(() => {
+    (async () => {
+      const url =
+        "https://s3-us-west-2.amazonaws.com/s.cdpn.io/2004014/iris.json";
+      const getData = await fetch(url)
+        .then((res) => res.json())
+        .then((data) => setH2Data(data));
+    })();
+  }, []);
+
   // return <FirstPractice />;
-  // return <HomeWork1 data={data} />;
-  return <HomeWork2 />;
+  // return <HomeWork1 data={h1Data} />;
+  return <HomeWork2 data={h2Data} />;
 };
 
 export default App;

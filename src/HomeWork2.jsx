@@ -1,35 +1,67 @@
-import { useEffect, useState } from "react";
 import * as d3 from "d3";
 
 const MakeScale = ({ xScale, yScale, scaleWidth, margin }) => {
   return (
     <>
       <line
-        x1={margin}
+        x1="0"
         x2={scaleWidth}
-        y1={scaleWidth - margin}
-        y2={scaleWidth - margin}
+        y1={scaleWidth}
+        y2={scaleWidth}
         stroke="black"
       />
-      <line
-        x1={margin}
-        x2={margin}
-        y1="0"
-        y2={scaleWidth - margin}
-        stroke="black"
-      />
+      <line x1="0" x2="0" y1="0" y2={scaleWidth} stroke="black" />
+
+      <text
+        x={-(margin / 2)}
+        y={scaleWidth / 2}
+        transform={`rotate(-90 ${-margin / 2} ${scaleWidth / 2})`}
+        textAnchor="middle"
+        fontSize="24"
+      >
+        Sepal Width
+      </text>
+      <text
+        x={scaleWidth / 2}
+        y={scaleWidth + margin / 2}
+        fontSize="24"
+        textAnchor="middle"
+      >
+        Sepal Length
+      </text>
 
       {xScale.ticks().map((x, i) => {
         return (
           <g transform={`translate(${xScale(x)}, 0)`} key={i}>
-            <line x1="0" x2="0" y1="0" y2={contentHeight - 15} stroke="black" />
+            <line
+              x1="0"
+              x2="0"
+              y1={scaleWidth}
+              y2={scaleWidth + 10}
+              stroke="black"
+            />
             <text
-              x={margin}
-              y={contentHeight}
+              x="0"
+              y={scaleWidth + 10}
               textAnchor="middle"
-              dominantBaseline="middle"
+              dominantBaseline="text-before-edge"
             >
               {x}
+            </text>
+          </g>
+        );
+      })}
+      {yScale.ticks().map((y, i) => {
+        return (
+          <g
+            transform={`translate(0, ${
+              yScale(d3.max(yScale.ticks())) - yScale(y)
+            })`}
+            key={i}
+          >
+            <line x1="-10" x2="0" y1={0} y2={0} stroke="black" />
+            <text x="-15" y="0" textAnchor="end" dominantBaseline="middle">
+              {y}
             </text>
           </g>
         );
@@ -42,59 +74,43 @@ const MakeChart = () => {};
 
 const MakeLegend = () => {};
 
-export const HomeWork2 = () => {
+export const HomeWork2 = ({ data }) => {
   const contentsWidth = 1000;
   const contentsHeight = 800;
-  const legendWidth = 200;
-  const margin = 50;
+  const legendWidth = 250;
+  const margin = 100;
 
-  const [data, setData] = useState([]);
-  const [xScale, setXScale] = useState([]);
-  const [yScale, setYScale] = useState([]);
   const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-  useEffect(() => {
-    console.log("aa")(async () => {
-      await fetch(
-        "https://s3-us-west-2.amazonaws.com/s.cdpn.io/2004014/iris.json"
-      )
-        .then((response) => response.json())
-        .then((_data) => setData(_data));
-    })();
-  }, []);
+  const xScale = d3
+    .scaleLinear()
+    .domain([
+      d3.min(data, (item) => item.sepalLength),
+      d3.max(data, (item) => item.sepalLength),
+    ])
+    .range([0, contentsWidth - legendWidth - margin])
+    .nice();
 
-  useEffect(() => {
-    const _xScale = d3
-      .scaleLinear()
-      .domain([
-        d3.min(data, (item) => item.sepalLength),
-        d3.max(data, (item) => item.sepalLength),
-      ])
-      .range([margin, contentsWidth - legendWidth])
-      .nice();
-
-    const _yScale = d3
-      .scaleLinear()
-      .domain([
-        d3.min(data, (item) => item.sepalWidth),
-        d3.max(data, (item) => item.sepalWidth),
-      ])
-      .range([margin, contentsHeight])
-      .nice();
-
-    setXScale(_xScale);
-    setYScale(_yScale);
-  }, [data]);
+  const yScale = d3
+    .scaleLinear()
+    .domain([
+      d3.min(data, (item) => item.sepalWidth),
+      d3.max(data, (item) => item.sepalWidth),
+    ])
+    .range([0, contentsHeight - (margin / 2) * 3])
+    .nice();
 
   return (
-    <div style={{ marginLeft: "50px", marginTop: "50px" }}>
+    <div style={{ margin: "50px" }}>
       <svg width={contentsWidth} height={contentsHeight}>
-        <MakeScale
-          xScale={xScale}
-          yScale={yScale}
-          scaleWidth={contentsWidth - legendWidth}
-          margin={margin}
-        />
+        <g transform={`translate(${margin}, ${margin / 2})`}>
+          <MakeScale
+            xScale={xScale}
+            yScale={yScale}
+            scaleWidth={contentsWidth - legendWidth - margin}
+            margin={margin}
+          />
+        </g>
       </svg>
     </div>
   );
