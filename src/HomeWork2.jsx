@@ -1,6 +1,8 @@
+import { Box, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import * as d3 from "d3";
+import { useEffect, useState } from "react";
 
-const MakeScale = ({ xScale, yScale, scaleWidth, margin }) => {
+const MakeScale = ({ xAxis, yAxis, xScale, yScale, scaleWidth, margin }) => {
   return (
     <g>
       <line
@@ -19,7 +21,7 @@ const MakeScale = ({ xScale, yScale, scaleWidth, margin }) => {
         textAnchor="middle"
         fontSize="24"
       >
-        Sepal Width
+        {yAxis}
       </text>
       <text
         x={scaleWidth / 2}
@@ -27,12 +29,16 @@ const MakeScale = ({ xScale, yScale, scaleWidth, margin }) => {
         fontSize="24"
         textAnchor="middle"
       >
-        Sepal Length
+        {xAxis}
       </text>
 
       {xScale.ticks().map((x, i) => {
         return (
-          <g transform={`translate(${xScale(x)}, 0)`} key={i}>
+          <g
+            transform={`translate(${xScale(x)}, 0)`}
+            style={{ transition: "all 0.5s ease" }}
+            key={i}
+          >
             <line
               x1="0"
               x2="0"
@@ -57,6 +63,7 @@ const MakeScale = ({ xScale, yScale, scaleWidth, margin }) => {
             transform={`translate(0, ${
               yScale(d3.max(yScale.ticks())) - yScale(y)
             })`}
+            style={{ transition: "all 0.5s ease" }}
             key={i}
           >
             <line x1="-10" x2="0" y1={0} y2={0} stroke="black" />
@@ -70,35 +77,56 @@ const MakeScale = ({ xScale, yScale, scaleWidth, margin }) => {
   );
 };
 
-const MakeChart = ({ data, xScale, yScale, color }) => {
+const MakeChart = ({
+  xAxis,
+  yAxis,
+  data,
+  xScale,
+  yScale,
+  color,
+  isDisplay,
+}) => {
   const r = 8;
   return (
     <g>
-      {data.map(({ sepalLength, sepalWidth, species }, i) => {
+      {data.map((item, i) => {
+        color(item.species);
         return (
-          <circle
-            cx="0"
-            cy="0"
-            r={r}
-            fill={color(species)}
-            transform={`translate(${xScale(sepalLength)}, ${
-              yScale(d3.max(yScale.ticks())) - yScale(sepalWidth)
-            })`}
-            key={i}
-          />
+          isDisplay[item.species] && (
+            <circle
+              cx="0"
+              cy="0"
+              r={r}
+              fill={color(item.species)}
+              transform={`translate(${xScale(item[xAxis])}, ${
+                yScale(d3.max(yScale.ticks())) - yScale(item[yAxis])
+              })`}
+              style={{ transition: "all 0.5s ease" }}
+              key={i}
+            />
+          )
         );
       })}
     </g>
   );
 };
 
-const MakeLegend = ({ species, color, legendStart }) => {
+const MakeLegend = ({ species, color, legendStart, setIsDisplay }) => {
   const rectWidth = 20;
   return (
     <g transform={`translate(${legendStart}, 0)`}>
       {species.map((item, i) => {
         return (
-          <g transform={`translate(0, ${40 * i})`} key={i}>
+          <g
+            transform={`translate(0, ${40 * i})`}
+            key={i}
+            onClick={() =>
+              setIsDisplay((prev) => ({ ...prev, [item]: !prev[item] }))
+            }
+            onMouseEnter={(e) => {
+              e.target.style.cursor = "pointer";
+            }}
+          >
             <rect
               x="0"
               y="0"
@@ -128,12 +156,21 @@ export const HomeWork2 = ({ data }) => {
   const margin = 100;
 
   const color = d3.scaleOrdinal(d3.schemeCategory10);
+  const category = ["sepalLength", "sepalWidth", "petalLength", "petalWidth"];
+  const [xAxis, setXAxis] = useState(category[0]);
+  const [yAxis, setYAxis] = useState(category[1]);
+
+  const species = Array.from(
+    new Set(data.map(({ species }) => species))
+  ).sort();
+
+  const [isDisplay, setIsDisplay] = useState({});
 
   const xScale = d3
     .scaleLinear()
     .domain([
-      d3.min(data, (item) => item.sepalLength),
-      d3.max(data, (item) => item.sepalLength),
+      d3.min(data, (item) => item[xAxis]),
+      d3.max(data, (item) => item[xAxis]),
     ])
     .range([0, contentsWidth - legendWidth - margin])
     .nice();
@@ -141,18 +178,62 @@ export const HomeWork2 = ({ data }) => {
   const yScale = d3
     .scaleLinear()
     .domain([
-      d3.min(data, (item) => item.sepalWidth),
-      d3.max(data, (item) => item.sepalWidth),
+      d3.min(data, (item) => item[yAxis]),
+      d3.max(data, (item) => item[yAxis]),
     ])
     .range([0, contentsHeight - (margin / 2) * 3])
     .nice();
 
-  const species = Array.from(
-    new Set(data.map(({ species }) => species))
-  ).sort();
+  useEffect(() => {
+    setIsDisplay(
+      species.reduce((acc, cur) => {
+        acc[cur] = true;
+        return acc;
+      }, {})
+    );
+  }, [data]);
 
   return (
     <div style={{ margin: "50px" }}>
+      <Box display="flex" flexDirection="column">
+        <FormControl variant="standard" sx={{ m: 1, width: 120 }}>
+          <InputLabel id="x-axis-label">x軸</InputLabel>
+          <Select
+            labelId="x-axis-label"
+            id="select-x-axis"
+            value={xAxis}
+            onChange={(e) => setXAxis(e.target.value)}
+            label="x軸"
+          >
+            {category.map((item) => {
+              return (
+                <MenuItem value={item} key={item}>
+                  {item}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+        <FormControl variant="standard" sx={{ m: 1, width: 120 }}>
+          <InputLabel id="y-axis-label">y軸</InputLabel>
+          <Select
+            labelId="y-axis-label"
+            id="select-y-axis"
+            value={yAxis}
+            onChange={(e) => setYAxis(e.target.value)}
+            label="y軸"
+          >
+            {category.map((item) => {
+              return (
+                <MenuItem value={item} key={item}>
+                  {item}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+      </Box>
+
       <svg width={contentsWidth} height={contentsHeight}>
         <g transform={`translate(${margin}, ${margin / 2})`}>
           <MakeScale
@@ -160,17 +241,23 @@ export const HomeWork2 = ({ data }) => {
             yScale={yScale}
             scaleWidth={contentsWidth - legendWidth - margin}
             margin={margin}
+            xAxis={xAxis}
+            yAxis={yAxis}
           />
           <MakeChart
             data={data}
             xScale={xScale}
             yScale={yScale}
             color={color}
+            xAxis={xAxis}
+            yAxis={yAxis}
+            isDisplay={isDisplay}
           />
           <MakeLegend
             species={species}
             color={color}
             legendStart={contentsWidth - legendWidth - margin}
+            setIsDisplay={setIsDisplay}
           />
         </g>
       </svg>
